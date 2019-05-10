@@ -20,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -29,13 +30,14 @@ import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 /**
- * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and
- * {@link BrokerController#pullThreadPoolQueue}
+ * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and {@link
+ * BrokerController#pullThreadPoolQueue}
  */
 public class BrokerFastFailure {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "BrokerFastFailureScheduledThread"));
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryImpl(
+            "BrokerFastFailureScheduledThread"));
     private final BrokerController brokerController;
 
     public BrokerFastFailure(final BrokerController brokerController) {
@@ -45,8 +47,8 @@ public class BrokerFastFailure {
     public static RequestTask castRunnable(final Runnable runnable) {
         try {
             if (runnable instanceof FutureTaskExt) {
-                FutureTaskExt object = (FutureTaskExt) runnable;
-                return (RequestTask) object.getRunnable();
+                FutureTaskExt object = (FutureTaskExt)runnable;
+                return (RequestTask)object.getRunnable();
             }
         } catch (Throwable e) {
             log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
@@ -76,7 +78,11 @@ public class BrokerFastFailure {
                     }
 
                     final RequestTask rt = castRunnable(runnable);
-                    rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", System.currentTimeMillis() - rt.getCreateTimestamp(), this.brokerController.getSendThreadPoolQueue().size()));
+                    rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format(
+                        "[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size"
+                            + " of queue: %d",
+                        System.currentTimeMillis() - rt.getCreateTimestamp(),
+                        this.brokerController.getSendThreadPoolQueue().size()));
                 } else {
                     break;
                 }
@@ -97,6 +103,16 @@ public class BrokerFastFailure {
             .brokerController.getBrokerConfig().getWaitTimeMillsInTransactionQueue());
     }
 
+    /**
+     * broker busy逻辑：
+     * 1.sendThreadPoolQueue 接受消息线程池
+     * 2.pullThreadPoolQueue
+     * 3.heartbeatThreadPoolQueue 接口心跳线程池
+     * 4.endTransactionThreadPoolQueue 结束事务
+     *
+     * @param blockingQueue
+     * @param maxWaitTimeMillsInQueue
+     */
     void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {
         while (true) {
             try {
@@ -114,7 +130,10 @@ public class BrokerFastFailure {
                     if (behind >= maxWaitTimeMillsInQueue) {
                         if (blockingQueue.remove(runnable)) {
                             rt.setStopRun(true);
-                            rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
+                            rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format(
+                                "[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: "
+                                    + "%sms, size of queue: %d",
+                                behind, blockingQueue.size()));
                         }
                     } else {
                         break;
