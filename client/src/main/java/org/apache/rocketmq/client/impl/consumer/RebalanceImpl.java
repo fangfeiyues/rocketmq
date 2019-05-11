@@ -339,13 +339,17 @@ public abstract class RebalanceImpl {
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
+                // 当前负载不包含上次MQ的情况
                 if (!mqSet.contains(mq)) {
+                    // 1.processQueue设置false(废弃)
                     pq.setDropped(true);
+                    // 2.顺序消费下 20s定时去broker解除如果msgTreeMap为空直接解除
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
+                // 又负载到这个MQ则判断pq距离上次消费时间是否过期
                 } else if (pq.isPullExpired()) {
                     switch (this.consumeType()) {
                         case CONSUME_ACTIVELY:

@@ -55,6 +55,7 @@ public class ProcessQueue {
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
+    // dropped：该数据结构里的消息是否废弃
     private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
@@ -226,6 +227,7 @@ public class ProcessQueue {
     public AtomicLong getMsgSize() {
         return msgSize;
     }
+
 
     public boolean isDropped() {
         return dropped;
