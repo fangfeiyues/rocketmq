@@ -243,6 +243,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         if (!this.consumeOrderly) {
+            // 非顺序消息流控，treeMap的offset值大小差距2000(默认)，每1000次消息拉取提示一下。50ms重新放入pullRequestQueue进行拉取
+            // 这里重复阻止拉取新的消息 一定程度上减少了因为消费阻塞带来的重复消费问题。如果消息拉来了但是不能消费同时队列又负载给了别的消费者
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL);
                 if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
@@ -254,10 +256,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         } else {
-            // 由负载时lock的 rebalanceByTopic()
+            // 顺序消费消息拉取 --  1.由负载时lock的 rebalanceByTopic()
             if (processQueue.isLocked()) {
-                // lockFirst的意思？
+                // 2.lockFirst的意思？
                 if (!pullRequest.isLockedFirst()) {
+                    // 3.判断offset
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
                     log.info("the first time to pull message, so fix offset from broker. pullRequest: {} NewOffset: {} brokerBusy: {}",
@@ -310,7 +313,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
-                                // 按照offset放入到msgTreeMap
+                                // 按照offset放入到 msgTreeMap
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                                     pullResult.getMsgFoundList(),
@@ -318,6 +321,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     pullRequest.getMessageQueue(),
                                     dispatchToConsume);
 
+                                // 消费完重新把pullRequest放回pullRequestQueue???
                                 if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
                                     DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                                         DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());

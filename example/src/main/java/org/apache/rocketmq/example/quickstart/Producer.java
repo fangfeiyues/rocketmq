@@ -22,6 +22,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+import static java.lang.Boolean.FALSE;
+
 /**
  * This class demonstrates how to send messages to brokers using provided {@link DefaultMQProducer}.
  */
@@ -33,6 +35,23 @@ public class Producer {
          */
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
         producer.setNamesrvAddr("47.100.237.162:9876");
+
+        // 接受 事务回查，修改customerId等
+        producer.setClientCallbackExecutorThreads(Runtime.getRuntime().availableProcessors());
+
+        producer.setCreateTopicKey("TBW102");
+
+        // 消息Body超过多大开始压缩（Consumer收到消息会自动解压缩）zip
+        producer.setCompressMsgBodyOverHowmuch(1024 * 4);
+
+        //如果发送消息返回sendResult，但是sendStatus!=SEND_OK，是否重试发送
+        producer.setRetryAnotherBrokerWhenNotStoreOK(FALSE);
+
+        producer.setRetryTimesWhenSendFailed(2);
+
+        // 客户端限制的消息大小，超过报错，同时服务端也会限制，所以需要跟服务端配合使用
+        producer.setMaxMessageSize(1024 * 1024 * 4);
+
         /*
          * Specify name server addresses.
          * <p/>
@@ -78,4 +97,5 @@ public class Producer {
          */
         producer.shutdown();
     }
+
 }

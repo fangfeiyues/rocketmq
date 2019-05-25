@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.quickstart;
 
 import java.util.List;
+
+import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -37,6 +39,26 @@ public class Consumer {
          */
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
         consumer.setNamesrvAddr("47.100.237.162:9876");
+        // 接受 事务回查，修改customerId等
+        consumer.setClientCallbackExecutorThreads(Runtime.getRuntime().availableProcessors());
+
+        //consumer.setAllocateMessageQueueStrategy();
+
+        // 并行消费的线程池
+        consumer.setConsumeThreadMin(20);
+
+        // 消息消费offset的最大偏移
+        consumer.setConsumeConcurrentlyMaxSpan(2000);
+
+        // 拉消息本地队列 treeMap.msgCount 缓存消息最大数
+        consumer.setPullThresholdForQueue(1000);
+
+        // 自己设定拉取 ???
+        consumer.setPullInterval(0);
+
+        consumer.setConsumeMessageBatchMaxSize(1);
+        consumer.setPullBatchSize(32);
+
         /*
          * Specify name server addresses.
          * <p/>
