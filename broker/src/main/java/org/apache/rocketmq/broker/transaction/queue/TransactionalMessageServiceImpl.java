@@ -135,6 +135,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long startTime = System.currentTimeMillis();
                 // MessageQueue -- opQueue
                 MessageQueue opQueue = getOpQueue(messageQueue);
+                // halfOffset: HALF_TOPIC的offset?
                 long halfOffset = transactionalMessageBridge.fetchConsumeOffset(messageQueue);
                 long opOffset = transactionalMessageBridge.fetchConsumeOffset(opQueue);
                 log.info("Before check, the queue={} msgOffset={} opOffset={}", messageQueue, halfOffset, opOffset);
@@ -147,7 +148,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 List<Long> doneOpOffset = new ArrayList<>();
                 HashMap<Long, Long> removeMap = new HashMap<>();
 
-                // 填充removeMap, doneOpOffset
+                // 填充 removeMap, doneOpOffset
                 PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, doneOpOffset);
                 if (null == pullResult) {
                     log.error("The queue={} check msgOffset={} with opOffset={} failed, pullResult is null",
@@ -195,6 +196,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         // 是否回查次数超过15次及超过时间72h；
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
+                            // 每次加1 ???
                             newOffset = i + 1;
                             i++;
                             continue;
