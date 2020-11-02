@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -39,7 +40,7 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
-        Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
+            Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
@@ -194,6 +195,7 @@ public class ProcessQueue {
                     result = this.queueOffsetMax + 1;
                     int removedCnt = 0;
                     for (MessageExt msg : msgs) {
+                        // 消费完成移除这个消息（移除offset）
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
@@ -203,6 +205,7 @@ public class ProcessQueue {
                     msgCount.addAndGet(removedCnt);
 
                     if (!msgTreeMap.isEmpty()) {
+                        // 取出当前还剩下消息的最小便偏移
                         result = msgTreeMap.firstKey();
                     }
                 }

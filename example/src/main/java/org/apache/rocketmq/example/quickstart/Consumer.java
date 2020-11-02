@@ -47,11 +47,14 @@ public class Consumer {
         // 并行消费的线程池
         consumer.setConsumeThreadMin(20);
 
+        consumer.setConsumeTimeout(15);
+
         // 消息消费offset的最大偏移
         consumer.setConsumeConcurrentlyMaxSpan(2000);
 
         // 拉消息本地队列 treeMap.msgCount 缓存消息最大数
         consumer.setPullThresholdForQueue(1000);
+        consumer.setPullThresholdSizeForQueue(50);
 
         // 自己设定拉取 ???
         consumer.setPullInterval(0);
